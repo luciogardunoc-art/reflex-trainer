@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#0b0d10">
 <meta name="description" content="REFLEX: entrenador reactivo de reflejos por voz y micrófono">
 <title>REFLEX · Entrenador reactivo de reflejos</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="REFLEX">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{
   --bg:#0b0d10;--panel:#14181e;--panel2:#1b2028;--line:#262d37;--txt:#e9edf2;--mut:#8a95a5;
@@ -90,14 +98,32 @@ th{color:var(--mut);font-weight:700;font-size:11px;text-transform:uppercase;lett
 .flash.go{opacity:1;transition:none}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mut);margin:-4px 0 12px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.top-r{display:flex;gap:8px;align-items:center}
+.install{border:none;background:var(--acc);color:#fff;font-weight:800;font-size:12px;padding:7px 12px;border-radius:99px;cursor:pointer;letter-spacing:.03em}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:16px}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;max-width:440px;width:100%;line-height:1.5}
+.sheet h3{margin:0 0 8px;font-size:17px}
+.sheet ol{padding-left:20px;margin:8px 0 14px}
+.sheet img{width:56px;height:56px;border-radius:14px;float:right;margin-left:10px}
 @media (max-width:420px){.kpi b{font-size:17px}.grid3{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 <header class="top">
   <div class="brand"><span class="logo"></span>REFLEX</div>
-  <div id="micChip" class="chip">MIC OFF</div>
+  <div class="top-r">
+    <button id="btnInstall" class="install hidden">Instalar app</button>
+    <div id="micChip" class="chip">MIC OFF</div>
+  </div>
 </header>
+<div id="iosModal" class="modal hidden">
+  <div class="sheet">
+    <img src="/icons/icon-192.png" alt="">
+    <h3>Instalar REFLEX</h3>
+    <div id="installSteps"></div>
+    <button class="btn primary" style="width:100%" onclick="document.getElementById('iosModal').classList.add('hidden')">Entendido</button>
+  </div>
+</div>
 <nav class="tabs">
   <button data-tab="train" class="on">Entrenar</button>
   <button data-tab="calib">Calibrar</button>
@@ -201,6 +227,11 @@ th{color:var(--mut);font-weight:700;font-size:11px;text-transform:uppercase;lett
     </div>
     <button id="btnTestVoice" class="btn sm">Probar voz</button>
     <p class="hint">Las voces vienen del sistema (Web Speech API): gratis, sin API key y funcionan sin internet en la mayoría de equipos.</p>
+  </div>
+  <div class="card">
+    <h3>App</h3>
+    <button id="btnInstall2" class="btn sm">Instalar en este dispositivo</button>
+    <p class="hint" id="installState">Instálala para abrirla a pantalla completa desde tu pantalla de inicio y usarla sin internet.</p>
   </div>
 </section>
 
@@ -845,6 +876,36 @@ document.addEventListener('visibilitychange', async () => {
   if(!document.hidden && E.running && navigator.wakeLock && !E.wake){ try{ E.wake = await navigator.wakeLock.request('screen'); }catch(e){} }
 });
 window.addEventListener('resize', () => { if($('#tab-stats').classList.contains('on')) renderStats(); });
+
+/* ================= Instalación (PWA) ================= */
+let deferredPrompt = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function refreshInstallUI(){
+  const btn = $('#btnInstall');
+  if(isStandalone()){ btn.classList.add('hidden'); $('#btnInstall2').disabled = true; $('#installState').textContent = 'REFLEX ya está instalada en este dispositivo ✓'; return; }
+  btn.classList.toggle('hidden', !(deferredPrompt || isIOS));
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; refreshInstallUI(); });
+window.addEventListener('appinstalled', () => { deferredPrompt = null; refreshInstallUI(); fb('App instalada ✓ Búscala en tu pantalla de inicio', 'var(--ok)'); });
+async function doInstall(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    const r = await deferredPrompt.userChoice; deferredPrompt = null; refreshInstallUI();
+    if(r.outcome === 'accepted') return;
+  }
+  const steps = isIOS
+    ? '<ol><li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (cuadro con flecha ↑).</li><li>Elige <b>Agregar a pantalla de inicio</b> y toca <b>Agregar</b>.</li></ol>'
+    : '<ol><li>Abre el menú del navegador <b>⋮</b> (arriba a la derecha).</li><li>Toca <b>Instalar app</b> o <b>Agregar a pantalla principal</b>.</li><li>Confirma con <b>Instalar</b>.</li></ol><p class="hint">Si no aparece la opción, abre la página en <b>Chrome</b> y recárgala una vez.</p>';
+  $('#installSteps').innerHTML = steps;
+  $('#iosModal').classList.remove('hidden');
+}
+$('#btnInstall').onclick = doInstall;
+$('#btnInstall2').onclick = doInstall;
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+refreshInstallUI();
 
 syncForm();
 requestAnimationFrame(loop);

@@ -24,19 +24,8 @@ if (-not (Test-Path ".\index.html")) { Write-Host "No encuentro index.html en es
 
 # vercel.json: cabeceras para permitir micrófono y evitar caché vieja
 if (-not (Test-Path ".\vercel.json")) {
-@'
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Permissions-Policy", "value": "microphone=(self)" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    }
-  ]
-}
-'@ | Set-Content -Encoding utf8 .\vercel.json
+$json = '{"headers":[{"source":"/(.*)","headers":[{"key":"Permissions-Policy","value":"microphone=(self)"}]}]}'
+  [System.IO.File]::WriteAllText("$PWD\vercel.json", $json, (New-Object System.Text.UTF8Encoding $false))
 }
 if (-not (Test-Path ".\.gitignore")) { ".vercel`nnode_modules" | Set-Content -Encoding utf8 .\.gitignore }
 
