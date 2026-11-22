@@ -1,19 +1,853 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#080814" />
-    <meta name="description" content="Orientación legal gratuita basada en IA para México. Consulta sobre arrendamiento, laboral, familiar, penal y más." />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="LexGPT" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>LexGPT México — Orientación Legal con IA</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<meta name="description" content="REFLEX: entrenador reactivo de reflejos por voz y micrófono">
+<title>REFLEX · Entrenador reactivo de reflejos</title>
+<style>
+:root{
+  --bg:#0b0d10;--panel:#14181e;--panel2:#1b2028;--line:#262d37;--txt:#e9edf2;--mut:#8a95a5;
+  --acc:#ff5a2e;--ok:#2ee6a6;--warn:#ffd23f;--bad:#ff4d5e;--blue:#4da3ff;--vio:#b483ff;
+  --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px}
+body{padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;max-width:760px;margin:0 auto}
+.brand{font-weight:900;letter-spacing:.18em;font-size:18px;display:flex;align-items:center;gap:8px}
+.logo{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 50% 50%,var(--acc) 0 30%,transparent 32% 52%,var(--acc) 54% 64%,transparent 66%)}
+.chip{font-size:11px;font-weight:700;letter-spacing:.08em;padding:5px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mut)}
+.chip.on{color:var(--ok);border-color:rgba(46,230,166,.4);background:rgba(46,230,166,.08)}
+.tabs{display:flex;gap:4px;max-width:760px;margin:0 auto;padding:0 12px;position:sticky;top:0;z-index:5;background:var(--bg)}
+.tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 4px;color:var(--mut);font-weight:700;cursor:pointer}
+.tabs button.on{color:var(--txt);border-bottom-color:var(--acc)}
+main{max-width:760px;margin:0 auto;padding:12px}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.modes{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:4px;scrollbar-width:none}
+.mode{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:8px 14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.mode.on{border-color:var(--acc);background:rgba(255,90,46,.12);color:#ffb39d}
+.mode:disabled{opacity:.45}
+.stage{background:linear-gradient(180deg,var(--panel2),var(--panel));border:2px solid var(--line);border-radius:22px;padding:14px;text-align:center;transition:border-color .12s,box-shadow .12s;position:relative;overflow:hidden}
+.stage.armed{border-color:var(--acc);box-shadow:0 0 0 4px rgba(255,90,46,.15)}
+.stage.hit{border-color:var(--ok);box-shadow:0 0 0 6px rgba(46,230,166,.22)}
+.stage.miss{border-color:var(--bad);box-shadow:0 0 0 6px rgba(255,77,94,.2)}
+.stage-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--mut);font-weight:700}
+.state{padding:4px 10px;border-radius:99px;background:#222832;color:var(--txt);letter-spacing:.08em;font-size:11px}
+.state.armed{background:var(--acc);color:#fff}.state.waiting{background:#2a3140}.state.rest{background:var(--blue);color:#06121f}
+.state.done{background:var(--ok);color:#04150e}.state.paused{background:var(--warn);color:#1d1600}
+#clockLbl{font-variant-numeric:tabular-nums}
+.cmd{font-size:clamp(30px,9vw,56px);font-weight:900;line-height:1.05;margin:22px 0 8px;min-height:1.1em;letter-spacing:-.01em;word-break:break-word}
+.cmd.dim{color:#3a4350}.cmd.nogo{color:var(--vio)}
+.rt{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:clamp(44px,15vw,84px);font-weight:800;line-height:1}
+.rt small{font-size:.32em;color:var(--mut);margin-left:6px}
+.fb{min-height:22px;color:var(--mut);margin:8px 0 12px;font-weight:600}
+canvas.meter{width:100%;height:16px;display:block;border-radius:8px}
+canvas.meter.big{height:34px;margin:10px 0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center}
+.kpi b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.ctrl{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:14px 10px;font-weight:800;cursor:pointer;letter-spacing:.02em}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.ghost{background:transparent}
+.btn.sm{padding:9px 12px;font-size:13px;border-radius:11px}
+.btn:disabled{opacity:.4;cursor:default}
+.hint{color:var(--mut);font-size:13px;line-height:1.45}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.field{margin:12px 0}
+.field label{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);font-weight:600;margin-bottom:6px;gap:8px}
+.field label output{color:var(--txt);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--acc)}
+input[type=number],select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px}
+textarea{min-height:110px;resize:vertical;line-height:1.4}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.check{display:flex;gap:10px;align-items:center;margin:10px 0;font-size:14px}
+.check input{width:20px;height:20px;accent-color:var(--acc)}
+.hidden{display:none!important}
+canvas.chart{width:100%;height:220px;display:block;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.big3 div{background:var(--panel2);border-radius:12px;padding:10px;text-align:center}
+.big3 b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.big3 span{font-size:11px;color:var(--mut);text-transform:uppercase}
+.verdict{margin-top:10px;padding:10px 12px;border-radius:12px;font-weight:700;font-size:14px}
+.hist-item{display:flex;justify-content:space-between;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;margin-bottom:6px;cursor:pointer;font-size:13px}
+.hist-item.on{border-color:var(--acc)}
+.hist-item small{color:var(--mut)}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:800}
+.flash{position:absolute;inset:0;background:rgba(46,230,166,.18);opacity:0;pointer-events:none;transition:opacity .25s}
+.flash.go{opacity:1;transition:none}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mut);margin:-4px 0 12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+@media (max-width:420px){.kpi b{font-size:17px}.grid3{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo"></span>REFLEX</div>
+  <div id="micChip" class="chip">MIC OFF</div>
+</header>
+<nav class="tabs">
+  <button data-tab="train" class="on">Entrenar</button>
+  <button data-tab="calib">Calibrar</button>
+  <button data-tab="setup">Ajustes</button>
+  <button data-tab="stats">Stats</button>
+</nav>
+<main>
+<!-- ============ ENTRENAR ============ -->
+<section id="tab-train" class="tab on">
+  <div class="modes" id="modeChips"></div>
+  <div class="stage" id="stage">
+    <div class="flash" id="flash"></div>
+    <div class="stage-top"><span id="roundLbl">Ronda –</span><span id="stateLbl" class="state">LISTO</span><span id="clockLbl">00:00</span></div>
+    <div id="cmdLbl" class="cmd dim">REFLEX</div>
+    <div class="rt"><span id="rtLbl">---</span><small>ms</small></div>
+    <div id="fbLbl" class="fb">Calibra el micrófono y pulsa Iniciar</div>
+    <canvas id="meterTrain" class="meter"></canvas>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b id="kOk">0/0</b><span>Aciertos</span></div>
+    <div class="kpi"><b id="kAvg">–</b><span>Prom. ronda</span></div>
+    <div class="kpi"><b id="kMiss">0</b><span>Fallos</span></div>
+    <div class="kpi"><b id="kFs">0</b><span>Anticip.</span></div>
+  </div>
+  <div class="ctrl">
+    <button id="btnStart" class="btn primary">Iniciar</button>
+    <button id="btnPause" class="btn" disabled>Pausa</button>
+    <button id="btnStop" class="btn ghost" disabled>Detener</button>
+  </div>
+  <div id="summary" class="card hidden" style="margin-top:12px"></div>
+  <p class="hint">Responde a cada comando con un golpe, palmada o pisotón. Para máxima precisión usa audífonos (la voz no llega al micrófono) o coloca la bocina lejos del micrófono.</p>
+</section>
+
+<!-- ============ CALIBRAR ============ -->
+<section id="tab-calib" class="tab">
+  <div class="card">
+    <h3>Micrófono</h3>
+    <button id="btnMic" class="btn primary" style="width:100%">Activar micrófono</button>
+    <canvas id="meterCal" class="meter big"></canvas>
+    <div class="row" style="font-size:13px;color:var(--mut)">
+      <span>Nivel <b id="lvlNow" style="color:var(--txt)">-∞</b> dBFS</span>
+      <span>Pico <b id="lvlPeak" style="color:var(--txt)">-∞</b></span>
+      <span>Golpes detectados <b id="hitCount" style="color:var(--ok)">0</b></span>
+    </div>
+    <p class="hint">La línea naranja es el umbral. Golpea o aplaude: cada impacto válido suma al contador.</p>
+  </div>
+  <div class="card">
+    <h3>Auto-calibración</h3>
+    <p id="calMsg" class="hint">1) Mide 2 s de ruido ambiente en silencio. 2) Golpea el saco/pad o aplaude 5 veces. El umbral se fija entre ambos niveles.</p>
+    <button id="btnAutoCal" class="btn" style="width:100%">Calibrar automáticamente</button>
+  </div>
+  <div class="card">
+    <h3>Ajuste fino</h3>
+    <div class="field"><label>Umbral de impacto <output data-o="thrDb"></output></label><input type="range" min="-60" max="-3" step="1" data-k="thrDb"></div>
+    <div class="field"><label>Filtro de transitorio (pico ÷ ruido previo) <output data-o="transient"></output></label><input type="range" min="1" max="12" step="0.5" data-k="transient"></div>
+    <div class="field"><label>Periodo refractario <output data-o="refractory"></output></label><input type="range" min="50" max="600" step="10" data-k="refractory"></div>
+    <div class="field"><label>Compensación de latencia del micrófono <output data-o="latency"></output></label><input type="range" min="0" max="150" step="1" data-k="latency"></div>
+    <p class="hint">Transitorio: un golpe sube de golpe; la voz sube gradual. Valores altos (4–6) rechazan mejor la voz del altavoz. 1 = desactivado.</p>
+  </div>
+</section>
+
+<!-- ============ AJUSTES ============ -->
+<section id="tab-setup" class="tab">
+  <div class="card">
+    <h3>Modalidad y comandos</h3>
+    <div class="field"><label>Modalidad</label><select data-k="mode" id="modeSel"></select></div>
+    <div class="field"><label>Comandos (uno por línea)</label><textarea data-k="cmds"></textarea></div>
+    <div class="field"><label>Comandos "no-go" (NO golpear)</label><textarea data-k="nogo" style="min-height:60px"></textarea></div>
+    <div class="field"><label>Probabilidad de no-go <output data-o="nogoProb"></output></label><input type="range" min="0" max="40" step="5" data-k="nogoProb"></div>
+    <label class="check"><input type="checkbox" data-k="noRepeat"> Evitar repetir el mismo comando seguido</label>
+    <button id="btnPreset" class="btn sm">Restaurar valores de la modalidad</button>
+  </div>
+  <div class="card">
+    <h3>Tiempos</h3>
+    <div class="grid2">
+      <div class="field"><label>Intervalo mín. (s)</label><input type="number" min="0.5" max="30" step="0.5" data-k="minI"></div>
+      <div class="field"><label>Intervalo máx. (s)</label><input type="number" min="0.5" max="60" step="0.5" data-k="maxI"></div>
+      <div class="field"><label>Límite respuesta (ms)</label><input type="number" min="300" max="8000" step="100" data-k="timeout"></div>
+      <div class="field"><label>Mín. válido / anti-eco (ms)</label><input type="number" min="0" max="400" step="10" data-k="minValid"></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>Rondas</label><input type="number" min="1" max="20" step="1" data-k="rounds"></div>
+      <div class="field"><label>Ronda (s)</label><input type="number" min="15" max="900" step="5" data-k="roundDur"></div>
+      <div class="field"><label>Descanso (s)</label><input type="number" min="5" max="600" step="5" data-k="rest"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Estímulo y voz</h3>
+    <div class="field"><label>Tipo de estímulo</label>
+      <select data-k="stim">
+        <option value="voice">Voz (t₀ = inicio de la voz)</option>
+        <option value="voicebeep">Pitido + voz (t₀ exacto = pitido)</option>
+        <option value="beep">Solo pitido (reacción simple)</option>
+      </select></div>
+    <label class="check"><input type="checkbox" data-k="showCmd"> Mostrar el comando en pantalla</label>
+    <label class="check"><input type="checkbox" data-k="blockSpeaking"> Ignorar golpes mientras la voz habla (sin audífonos)</label>
+    <div class="field"><label>Voz</label><select data-k="voiceURI" id="voiceSel"></select></div>
+    <div class="grid2">
+      <div class="field"><label>Velocidad <output data-o="rate"></output></label><input type="range" min="0.7" max="1.8" step="0.05" data-k="rate"></div>
+      <div class="field"><label>Volumen <output data-o="volume"></output></label><input type="range" min="0.1" max="1" step="0.05" data-k="volume"></div>
+    </div>
+    <button id="btnTestVoice" class="btn sm">Probar voz</button>
+    <p class="hint">Las voces vienen del sistema (Web Speech API): gratis, sin API key y funcionan sin internet en la mayoría de equipos.</p>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<section id="tab-stats" class="tab">
+  <div class="card" id="statsHead"><p class="hint">Aún no hay sesiones. Entrena una ronda para ver tus estadísticas de fatiga.</p></div>
+  <canvas id="chartTrials" class="chart"></canvas>
+  <div class="legend" id="legendTrials"></div>
+  <canvas id="chartRounds" class="chart"></canvas>
+  <div class="card tbl" id="roundTable"></div>
+  <div class="card">
+    <h3>Historial</h3>
+    <div id="histList"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="btnCsv" class="btn sm">Exportar CSV</button>
+      <button id="btnClear" class="btn sm ghost">Borrar historial</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+'use strict';
+/* ================= Utilidades ================= */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const lin2db = v => v > 0 ? 20 * Math.log10(v) : -Infinity;
+const db2lin = d => Math.pow(10, d / 20);
+const rand = (a, b) => a + Math.random() * (b - a);
+const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const median = a => { if(!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2; };
+const sd = a => { if(a.length < 2) return null; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+const fmt = (v, d = 0) => v == null || !isFinite(v) ? '–' : v.toFixed(d);
+const fmtClock = ms => { ms = Math.max(0, ms); const s = Math.ceil(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const ROUND_COLORS = ['#ff6a3d','#2ee6a6','#4da3ff','#ffd23f','#b483ff','#ff4d8d','#5ce1e6','#c3e64d','#ff9f3d','#9aa7ff'];
+
+/* ================= Modalidades ================= */
+const PRESETS = {
+  boxeo:     { label:'🥊 Boxeo', cmds:['Jab','Directo','Gancho izquierdo','Gancho derecho','Uppercut','Uno dos','Uno dos tres','Jab al cuerpo','Cruzado'], nogo:['Alto','Guardia'], minI:1.5, maxI:4, timeout:1500, rounds:3, roundDur:120, rest:60, nogoProb:0 },
+  marciales: { label:'🥋 Artes marciales', cmds:['Patada frontal','Patada circular','Patada lateral','Puño','Codo','Rodilla','Bloqueo alto','Bloqueo bajo','Kiai'], nogo:['Mate','Quieto'], minI:2, maxI:5, timeout:1800, rounds:3, roundDur:120, rest:60, nogoProb:10 },
+  rehab:     { label:'🩺 Rehabilitación', cmds:['Palmada','Toca la mesa','Mano derecha','Mano izquierda','Pie derecho','Pie izquierdo'], nogo:['Espera'], minI:4, maxI:8, timeout:3500, rounds:3, roundDur:90, rest:90, nogoProb:0 },
+  agilidad:  { label:'⚡ Agilidad', cmds:['Izquierda','Derecha','Adelante','Atrás','Abajo','Salta'], nogo:['Alto'], minI:1.5, maxI:3.5, timeout:2500, rounds:4, roundDur:60, rest:45, nogoProb:15 }
+};
+const BASE = { mode:'boxeo', thrDb:-24, transient:3, refractory:200, latency:0, minValid:100, blockSpeaking:false,
+  stim:'voice', showCmd:true, voiceURI:'', rate:1.15, volume:1, noRepeat:true };
+function presetFields(m){
+  const p = PRESETS[m];
+  return { mode:m, cmds:p.cmds.join('\n'), nogo:p.nogo.join('\n'), minI:p.minI, maxI:p.maxI, timeout:p.timeout,
+    rounds:p.rounds, roundDur:p.roundDur, rest:p.rest, nogoProb:p.nogoProb };
+}
+let S = Object.assign({}, BASE, presetFields('boxeo'), store.get('reflex.settings', {}));
+if(!PRESETS[S.mode]) S.mode = 'boxeo';
+const saveS = () => store.set('reflex.settings', S);
+const listOf = txt => String(txt || '').split('\n').map(s => s.trim()).filter(Boolean);
+
+/* ================= Motor de audio (micrófono + AnalyserNode) ================= */
+let ctx = null, analyser = null, stream = null, buf = null, sr = 48000;
+let lastScan = 0, refractoryUntil = 0, meterDb = -Infinity, peakHoldDb = -Infinity, peakHoldT = 0, calHits = 0;
+let CAL = null;
+
+async function initMic(){
+  if(ctx){ if(ctx.state === 'suspended') await ctx.resume(); return true; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    alert('Este navegador no permite usar el micrófono. Usa Chrome, Edge o Safari recientes con HTTPS.');
+    return false;
+  }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 } });
+  }catch(e){
+    alert('No se pudo acceder al micrófono: ' + e.message + '\nRevisa los permisos del navegador.');
+    return false;
+  }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  ctx = new AC({ latencyHint:'interactive' });
+  if(ctx.state === 'suspended') await ctx.resume();
+  const src = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0;
+  src.connect(analyser);
+  buf = new Float32Array(analyser.fftSize);
+  sr = ctx.sampleRate;
+  lastScan = performance.now();
+  $('#micChip').textContent = 'MIC ON · ' + Math.round(sr / 1000) + ' kHz';
+  $('#micChip').classList.add('on');
+  $('#btnMic').textContent = 'Micrófono activo';
+  return true;
+}
+
+/* Escanea solo las muestras nuevas del buffer y localiza la muestra exacta del impacto */
+function tick(){
+  const now = performance.now();
+  analyser.getFloatTimeDomainData(buf);
+  const N = buf.length;
+  let fresh = Math.ceil((now - lastScan) / 1000 * sr) + 32;
+  if(fresh > N) fresh = N;
+  lastScan = now;
+  const start = N - fresh;
+  let pk = 0;
+  for(let i = start; i < N; i++){ const a = Math.abs(buf[i]); if(a > pk) pk = a; }
+  const db = lin2db(pk);
+  meterDb = Math.max(db, meterDb - 1.5);
+  if(db > peakHoldDb || now - peakHoldT > 1500){ peakHoldDb = db; peakHoldT = now; }
+
+  if(CAL){ calFeed(pk, now); return; }
+
+  const thr = db2lin(S.thrDb);
+  if(pk < thr) return;
+  const preLen = Math.round(sr * 0.02), gap = Math.round(sr * 0.001);
+  for(let i = start; i < N; i++){
+    const a = Math.abs(buf[i]);
+    if(a < thr) continue;
+    const tHit = now - (N - i) / sr * 1000 - S.latency;
+    if(tHit < refractoryUntil) continue;
+    let s = 0, c = 0;
+    for(let j = Math.max(0, i - preLen - gap); j < i - gap; j++){ s += buf[j] * buf[j]; c++; }
+    const preRms = c ? Math.sqrt(s / c) : 0;
+    const ratio = a / (preRms + 1e-4);
+    if(c < preLen * 0.5 || ratio >= S.transient){
+      refractoryUntil = tHit + S.refractory;
+      onHit(tHit, a, ratio);
+      break;
+    }
+    i += gap * 5; // sonido sostenido (voz): saltar 5 ms
+  }
+}
+
+/* ================= Síntesis de voz (Web Speech API) y tonos ================= */
+let voices = [];
+function loadVoices(){
+  if(!('speechSynthesis' in window)) return;
+  voices = speechSynthesis.getVoices();
+  const sel = $('#voiceSel');
+  const es = voices.filter(v => /^es/i.test(v.lang)), other = voices.filter(v => !/^es/i.test(v.lang));
+  sel.innerHTML = '<option value="">Automática (español)</option>' +
+    [...es, ...other].map(v => `<option value="${v.voiceURI.replace(/"/g,'&quot;')}">${v.name} (${v.lang})</option>`).join('');
+  sel.value = S.voiceURI || '';
+  if(sel.value !== (S.voiceURI || '')) sel.value = '';
+}
+if('speechSynthesis' in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function pickVoice(){
+  if(S.voiceURI){ const v = voices.find(v => v.voiceURI === S.voiceURI); if(v) return v; }
+  return voices.find(v => /es[-_]MX/i.test(v.lang)) || voices.find(v => /es[-_](US|419)/i.test(v.lang)) || voices.find(v => /^es/i.test(v.lang)) || null;
+}
+function say(text, opt = {}){
+  const t0 = performance.now();
+  if(!('speechSynthesis' in window)){ opt.onstart && opt.onstart(t0); opt.onend && opt.onend(); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  const v = pickVoice();
+  if(v){ u.voice = v; u.lang = v.lang; } else u.lang = 'es-MX';
+  u.rate = opt.rate || S.rate; u.volume = opt.volume != null ? opt.volume : S.volume;
+  let started = false, ended = false;
+  const start = () => { if(started) return; started = true; E.speaking = true; opt.onstart && opt.onstart(performance.now()); };
+  const end = () => { if(ended) return; ended = true; E.speaking = false; E.quietUntil = Math.max(E.quietUntil, performance.now() + 150); opt.onend && opt.onend(); };
+  u.onstart = start; u.onend = end; u.onerror = () => { start(); end(); };
+  E.speaking = true;
+  speechSynthesis.speak(u);
+  // Algunos navegadores no disparan onstart: respaldo
+  setTimeout(() => { if(!started){ started = true; opt.onstart && opt.onstart(t0); } }, 1200);
+  setTimeout(end, 8000);
+}
+function tone(freq = 1800, dur = 0.07, gain = 0.25){
+  if(!ctx) return performance.now();
+  const delay = 0.03, t = ctx.currentTime + delay;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+  let perf = null;
+  if(ctx.getOutputTimestamp){
+    const ts = ctx.getOutputTimestamp();
+    if(ts && ts.performanceTime) perf = ts.performanceTime + (t - ts.contextTime) * 1000;
+  }
+  if(perf == null) perf = performance.now() + delay * 1000 + ((ctx.outputLatency || ctx.baseLatency || 0) * 1000);
+  E.quietUntil = Math.max(E.quietUntil, perf + dur * 1000 + 120);
+  return perf;
+}
+
+/* ================= Motor de entrenamiento ================= */
+const E = { running:false, paused:false, state:'idle', prevState:null, round:0, roundStart:0, roundEnd:0, restEnd:0,
+  timers:[], cur:null, session:null, lastCmd:null, speaking:false, quietUntil:0, pausedAt:0, wake:null };
+const later = (fn, ms) => { const id = setTimeout(fn, ms); E.timers.push(id); return id; };
+const clearAll = () => { E.timers.forEach(clearTimeout); E.timers = []; };
+const curRound = () => E.session && E.session.rounds[E.round - 1];
+
+const STATE_TXT = { idle:'LISTO', countdown:'PREPARA', waiting:'ESPERA', armed:'¡YA!', rest:'DESCANSO', paused:'PAUSA', done:'FIN' };
+function setState(s){
+  E.state = s;
+  const el = $('#stateLbl'); el.textContent = STATE_TXT[s] || s; el.className = 'state ' + s;
+  $('#stage').classList.toggle('armed', s === 'armed');
+}
+function stageFlash(cls){
+  const st = $('#stage'); st.classList.remove('hit', 'miss'); void st.offsetWidth; st.classList.add(cls);
+  setTimeout(() => st.classList.remove(cls), 350);
+}
+function setCmd(txt, cls = ''){ const el = $('#cmdLbl'); el.textContent = txt; el.className = 'cmd ' + cls; }
+function fb(txt, color){ const el = $('#fbLbl'); el.textContent = txt; el.style.color = color || ''; }
+
+async function startSession(){
+  const cmds = listOf(S.cmds);
+  if(!cmds.length){ alert('Agrega al menos un comando en Ajustes.'); return; }
+  if(S.minI > S.maxI){ const t = S.minI; S.minI = S.maxI; S.maxI = t; saveS(); syncForm(); }
+  if(!(await initMic())) return;
+  if('speechSynthesis' in window){ speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); }
+  try{ if(navigator.wakeLock) E.wake = await navigator.wakeLock.request('screen'); }catch(e){}
+  E.session = { id:Date.now(), date:new Date().toISOString(), mode:S.mode, stim:S.stim,
+    settings:{ minI:S.minI, maxI:S.maxI, timeout:S.timeout, roundDur:S.roundDur, rest:S.rest, rounds:S.rounds, thrDb:S.thrDb }, rounds:[] };
+  E.running = true; E.paused = false;
+  $('#summary').classList.add('hidden');
+  updateButtons(); renderModeChips();
+  beginRound(1);
+}
+function beginRound(n){
+  E.round = n;
+  if(!E.session.rounds[n - 1]) E.session.rounds[n - 1] = { n, trials:[], falseStarts:0 };
+  $('#roundLbl').textContent = `Ronda ${n}/${S.rounds}`;
+  setState('countdown'); setCmd(`Ronda ${n}`, 'dim'); $('#rtLbl').textContent = '---';
+  fb('Prepárate…'); updateKpis();
+  say(`Ronda ${n}. Listos.`, { onend: () => {
+    let k = 3;
+    const step = () => {
+      if(!E.running || E.paused) return;
+      if(k > 0){ setCmd(String(k), 'dim'); tone(880, 0.09, 0.2); k--; later(step, 800); }
+      else {
+        tone(1760, 0.18, 0.25); setCmd('¡Fuera!', 'dim'); fb('Espera el comando…');
+        E.roundStart = performance.now(); E.roundEnd = E.roundStart + S.roundDur * 1000;
+        scheduleNext();
+      }
+    };
+    later(step, 400);
+  }});
+}
+function scheduleNext(extraMs = 0){
+  if(!E.running || E.paused) return;
+  if(performance.now() >= E.roundEnd){ endRound(); return; }
+  setState('waiting');
+  later(fireStimulus, rand(S.minI, S.maxI) * 1000 + extraMs);
+}
+function fireStimulus(){
+  if(!E.running || E.paused) return;
+  if(performance.now() >= E.roundEnd){ endRound(); return; }
+  const cmds = listOf(S.cmds), nogos = listOf(S.nogo);
+  const isNogo = nogos.length > 0 && S.nogoProb > 0 && Math.random() < S.nogoProb / 100;
+  const pool = isNogo ? nogos : cmds;
+  let cmd = pool[Math.floor(Math.random() * pool.length)];
+  if(S.noRepeat && pool.length > 1){ let g = 0; while(cmd === E.lastCmd && g++ < 10) cmd = pool[Math.floor(Math.random() * pool.length)]; }
+  E.lastCmd = cmd;
+  const c = E.cur = { cmd, nogo:isNogo, t0:null, pending:[], done:false, speaking:false };
+  setState('armed');
+  const setT0 = t => {
+    if(c.t0 != null || c !== E.cur) return;
+    c.t0 = t;
+    const show = () => { if(c === E.cur && !c.done){ setCmd(S.showCmd || S.stim === 'beep' ? (S.stim === 'beep' ? '●' : cmd) : '•••', isNogo ? 'nogo' : ''); } };
+    const delay = t - performance.now();
+    delay > 2 ? setTimeout(show, delay) : show();
+    later(() => resolveTrial(null), S.timeout + Math.max(0, delay));
+    c.pending.splice(0).forEach(evalHit);
+  };
+  if(S.stim === 'beep'){ setT0(tone(2000, 0.07, 0.22)); }
+  else if(S.stim === 'voicebeep'){
+    setT0(tone(2000, 0.06, 0.18));
+    c.speaking = true; say(cmd, { onend: () => { c.speaking = false; } });
+  } else {
+    c.speaking = true;
+    say(cmd, { onstart: setT0, onend: () => { c.speaking = false; } });
+  }
+}
+function onHit(t){
+  const fl = $('#flash'); fl.classList.add('go'); requestAnimationFrame(() => requestAnimationFrame(() => fl.classList.remove('go')));
+  if(!E.running){ calHits++; $('#hitCount').textContent = calHits; return; }
+  if(E.paused) return;
+  if(E.state === 'waiting'){
+    if(E.speaking || t < E.quietUntil) return; // eco de la voz / tonos del sistema
+    const r = curRound(); r.falseStarts++;
+    fb('¡Anticipación! Espera el comando', 'var(--warn)'); stageFlash('miss'); updateKpis();
+    clearAll(); later(fireStimulus, rand(S.minI, S.maxI) * 1000);
+    return;
+  }
+  if(E.state === 'armed' && E.cur && !E.cur.done){
+    if(E.cur.t0 == null){ E.cur.pending.push(t); return; }
+    evalHit(t);
+  }
+}
+function evalHit(t){
+  const c = E.cur; if(!c || c.done || c.t0 == null) return;
+  const rt = t - c.t0;
+  if(rt < S.minValid) return;               // físicamente imposible → eco/ruido del estímulo
+  if(S.blockSpeaking && c.speaking) return;  // modo sin audífonos
+  if(rt > S.timeout) return;
+  resolveTrial(rt);
+}
+function resolveTrial(rt){
+  const c = E.cur; if(!c || c.done) return;
+  c.done = true; clearAll();
+  const r = curRound();
+  const result = c.nogo ? (rt == null ? 'inhibido' : 'error') : (rt == null ? 'fallo' : 'ok');
+  r.trials.push({ cmd:c.cmd, nogo:c.nogo, result, rt: rt == null ? null : Math.round(rt), t: Math.round((c.t0 || performance.now()) - E.roundStart) });
+  const okRts = r.trials.filter(x => x.result === 'ok').map(x => x.rt);
+  if(result === 'ok'){
+    $('#rtLbl').textContent = Math.round(rt);
+    const m = mean(okRts.slice(0, -1));
+    if(m){ const d = Math.round(rt - m); fb((d <= 0 ? '▼ ' : '▲ ') + Math.abs(d) + ' ms vs. promedio de ronda', d <= 0 ? 'var(--ok)' : 'var(--warn)'); }
+    else fb('¡Bien! Sigue así', 'var(--ok)');
+    stageFlash('hit');
+  } else if(result === 'fallo'){ $('#rtLbl').textContent = '---'; fb('Sin respuesta (fallo)', 'var(--bad)'); stageFlash('miss'); }
+  else if(result === 'error'){ $('#rtLbl').textContent = Math.round(rt); fb('Error de inhibición: era NO golpear', 'var(--vio)'); stageFlash('miss'); }
+  else { $('#rtLbl').textContent = '---'; fb('Bien inhibido ✓', 'var(--ok)'); stageFlash('hit'); }
+  updateKpis();
+  setState('waiting');
+  setTimeout(() => { if(E.cur === c && E.running && !E.paused) setCmd('', 'dim'); }, 700);
+  scheduleNext(400);
+}
+function endRound(){
+  clearAll(); E.cur = null;
+  const r = curRound(), st = roundStats(r);
+  const last = E.round >= S.rounds;
+  setCmd(last ? 'Fin' : 'Descanso', 'dim');
+  fb(`Ronda ${E.round}: promedio ${fmt(st.mean)} ms · ${st.ok}/${st.go} aciertos`);
+  const txt = st.mean ? `Tiempo. Ronda ${E.round} terminada. Promedio ${Math.round(st.mean)} milisegundos.` : `Tiempo. Ronda ${E.round} terminada.`;
+  if(last){ setState('done'); say(txt + ' Entrenamiento completo.'); finishSession(); return; }
+  setState('rest'); say(txt);
+  startRest(S.rest * 1000);
+}
+function startRest(ms){
+  E.restEnd = performance.now() + ms;
+  if(ms > 11000) later(() => say('Diez segundos'), ms - 10000);
+  later(() => beginRound(E.round + 1), ms);
+}
+function pauseSession(){
+  if(!E.running) return;
+  if(!E.paused){
+    E.paused = true; E.prevState = E.state; E.pausedAt = performance.now();
+    clearAll(); E.cur = null;
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+    setState('paused'); fb('En pausa'); $('#btnPause').textContent = 'Seguir';
+  } else {
+    E.paused = false; $('#btnPause').textContent = 'Pausa';
+    const dt = performance.now() - E.pausedAt;
+    if(E.prevState === 'rest'){ setState('rest'); startRest(Math.max(1000, E.restEnd + dt - performance.now())); }
+    else if(E.prevState === 'countdown'){ beginRound(E.round); }
+    else { E.roundEnd += dt; fb('Espera el comando…'); scheduleNext(); }
+  }
+}
+function stopSession(){
+  if(!E.running) return;
+  clearAll(); E.cur = null;
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  const s = E.session;
+  if(s && s.rounds.length && !s.rounds[s.rounds.length - 1].trials.length) s.rounds.pop();
+  setState('done'); setCmd('Detenido', 'dim');
+  finishSession();
+}
+function finishSession(){
+  E.running = false; E.paused = false;
+  try{ E.wake && E.wake.release(); }catch(e){} E.wake = null;
+  const s = E.session;
+  if(s && s.rounds.some(r => r.trials.length)){
+    const h = store.get('reflex.history', []); h.unshift(s); store.set('reflex.history', h.slice(0, 50));
+    viewId = s.id; renderSummary(s); renderStats();
+  }
+  $('#btnPause').textContent = 'Pausa';
+  updateButtons(); renderModeChips();
+}
+function updateButtons(){
+  $('#btnStart').disabled = E.running;
+  $('#btnPause').disabled = !E.running;
+  $('#btnStop').disabled = !E.running;
+}
+function updateKpis(){
+  const r = curRound(); if(!r) return;
+  const st = roundStats(r);
+  $('#kOk').textContent = `${st.ok}/${st.go}`;
+  $('#kAvg').textContent = fmt(st.mean);
+  $('#kMiss').textContent = st.miss + st.nogoErr;
+  $('#kFs').textContent = r.falseStarts;
+}
+
+/* ================= Estadísticas y fatiga ================= */
+function roundStats(r){
+  const okT = r.trials.filter(t => t.result === 'ok'), rts = okT.map(t => t.rt);
+  const go = r.trials.filter(t => !t.nogo).length, nogo = r.trials.filter(t => t.nogo).length;
+  const k = Math.max(1, Math.floor(rts.length / 3));
+  const first = mean(rts.slice(0, k)), lastM = mean(rts.slice(-k));
+  let slope = null;
+  if(okT.length >= 3){
+    const xs = okT.map(t => t.t / 60000), mx = mean(xs), my = mean(rts);
+    const den = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+    if(den > 0) slope = xs.reduce((s, x, i) => s + (x - mx) * (rts[i] - my), 0) / den;
+  }
+  return { n:r.n, ok:rts.length, go, nogo, miss:r.trials.filter(t => t.result === 'fallo').length,
+    nogoErr:r.trials.filter(t => t.result === 'error').length, fs:r.falseStarts,
+    mean:mean(rts), median:median(rts), sd:sd(rts), best:rts.length ? Math.min(...rts) : null, worst:rts.length ? Math.max(...rts) : null,
+    drift: rts.length >= 4 && first ? (lastM - first) / first * 100 : null, slope, acc: go ? rts.length / go * 100 : null };
+}
+function sessionStats(s){
+  const rs = s.rounds.filter(r => r.trials.length).map(roundStats);
+  const all = s.rounds.flatMap(r => r.trials.filter(t => t.result === 'ok').map(t => t.rt));
+  const withMean = rs.filter(r => r.mean != null);
+  const f = withMean.length >= 2 ? (withMean[withMean.length - 1].mean - withMean[0].mean) / withMean[0].mean * 100 : (withMean[0] ? withMean[0].drift : null);
+  const m = mean(all), d = sd(all);
+  const go = rs.reduce((a, r) => a + r.go, 0), ok = rs.reduce((a, r) => a + r.ok, 0);
+  return { rs, mean:m, best: all.length ? Math.min(...all) : null, cv: m && d ? d / m * 100 : null, fatigue:f,
+    acc: go ? ok / go * 100 : null, fs: rs.reduce((a, r) => a + r.fs, 0), crossRound: withMean.length >= 2 };
+}
+function fatigueVerdict(f){
+  if(f == null) return ['Datos insuficientes para medir fatiga', '#2a3140', 'var(--txt)'];
+  if(f < -3) return [`Mejoraste ${fmt(-f,1)}% — calentamiento / adaptación`, 'rgba(46,230,166,.15)', 'var(--ok)'];
+  if(f < 5) return [`Estable (${fmt(f,1)}%) — sin fatiga relevante`, 'rgba(46,230,166,.15)', 'var(--ok)'];
+  if(f < 10) return [`Fatiga leve (+${fmt(f,1)}%)`, 'rgba(255,210,63,.15)', 'var(--warn)'];
+  if(f < 20) return [`Fatiga moderada (+${fmt(f,1)}%)`, 'rgba(255,159,61,.15)', '#ff9f3d'];
+  return [`Fatiga alta (+${fmt(f,1)}%) — considera más descanso`, 'rgba(255,77,94,.15)', 'var(--bad)'];
+}
+function renderSummary(s){
+  const st = sessionStats(s), [v, bg, col] = fatigueVerdict(st.fatigue);
+  $('#summary').innerHTML = `<h3>Resumen de la sesión</h3>
+    <div class="big3"><div><b>${fmt(st.mean)}</b><span>Prom. ms</span></div><div><b>${fmt(st.best)}</b><span>Mejor ms</span></div><div><b>${fmt(st.acc)}%</b><span>Precisión</span></div></div>
+    <div class="verdict" style="background:${bg};color:${col}">${v}</div>
+    <button class="btn sm" style="margin-top:10px" onclick="showTab('stats')">Ver estadísticas completas</button>`;
+  $('#summary').classList.remove('hidden');
+}
+let viewId = null;
+function getHistory(){ return store.get('reflex.history', []); }
+function renderStats(){
+  const h = getHistory();
+  const s = h.find(x => x.id === viewId) || h[0];
+  const list = $('#histList');
+  list.innerHTML = h.length ? h.map(x => {
+    const st = sessionStats(x), d = new Date(x.date);
+    const [, , col] = fatigueVerdict(st.fatigue);
+    return `<div class="hist-item ${s && x.id === s.id ? 'on' : ''}" data-id="${x.id}">
+      <div><b>${(PRESETS[x.mode] || {}).label || x.mode}</b><br><small>${d.toLocaleDateString('es-MX')} ${d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})} · ${x.rounds.length} rondas</small></div>
+      <div style="text-align:right"><b>${fmt(st.mean)} ms</b><br><small style="color:${col}">fatiga ${st.fatigue == null ? '–' : (st.fatigue > 0 ? '+' : '') + fmt(st.fatigue,1) + '%'}</small></div></div>`;
+  }).join('') : '<p class="hint">Sin sesiones guardadas.</p>';
+  $$('.hist-item').forEach(el => el.onclick = () => { viewId = +el.dataset.id; renderStats(); });
+  if(!s){
+    $('#statsHead').innerHTML = '<p class="hint">Aún no hay sesiones. Entrena una ronda para ver tus estadísticas de fatiga.</p>';
+    $('#roundTable').innerHTML = ''; $('#roundTable').classList.add('hidden'); $('#legendTrials').innerHTML = '';
+    clearChart($('#chartTrials'), 'Tiempos de reacción por estímulo'); clearChart($('#chartRounds'), 'Promedio por ronda');
+    return;
+  }
+  const st = sessionStats(s), [v, bg, col] = fatigueVerdict(st.fatigue);
+  $('#statsHead').innerHTML = `<h3>${(PRESETS[s.mode] || {}).label || s.mode} · ${new Date(s.date).toLocaleString('es-MX')}</h3>
+    <div class="big3"><div><b>${fmt(st.mean)}</b><span>Prom. ms</span></div><div><b>${fmt(st.best)}</b><span>Mejor ms</span></div><div><b>${st.cv == null ? '–' : fmt(st.cv,1) + '%'}</b><span>Variabilidad</span></div></div>
+    <div class="big3"><div><b>${st.acc == null ? '–' : fmt(st.acc) + '%'}</b><span>Precisión</span></div><div><b>${st.fs}</b><span>Anticip.</span></div><div><b>${st.fatigue == null ? '–' : (st.fatigue > 0 ? '+' : '') + fmt(st.fatigue,1) + '%'}</b><span>Índice fatiga</span></div></div>
+    <div class="verdict" style="background:${bg};color:${col}">${v}</div>
+    <p class="hint" style="margin:8px 0 0">Índice de fatiga = cambio del tiempo medio de la última ronda frente a la primera${st.crossRound ? '' : ' (con 1 ronda: último tercio vs. primer tercio)'}. Variabilidad = desviación estándar ÷ media.</p>`;
+  $('#roundTable').classList.remove('hidden');
+  $('#roundTable').innerHTML = `<table><thead><tr><th>Ronda</th><th>Aciertos</th><th>Prom.</th><th>Mediana</th><th>Mejor</th><th>DE</th><th>Fallos</th><th>No-go ✗</th><th>Antic.</th><th>Deriva</th><th>ms/min</th></tr></thead><tbody>
+    ${st.rs.map(r => `<tr><td><span class="pill" style="background:${ROUND_COLORS[(r.n-1)%ROUND_COLORS.length]};color:#0b0d10">R${r.n}</span></td><td>${r.ok}/${r.go}</td><td><b>${fmt(r.mean)}</b></td><td>${fmt(r.median)}</td><td>${fmt(r.best)}</td><td>${fmt(r.sd)}</td><td>${r.miss}</td><td>${r.nogoErr}</td><td>${r.fs}</td><td style="color:${r.drift == null ? 'inherit' : r.drift > 10 ? 'var(--bad)' : r.drift > 5 ? 'var(--warn)' : 'var(--ok)'}">${r.drift == null ? '–' : (r.drift > 0 ? '+' : '') + fmt(r.drift,1) + '%'}</td><td>${r.slope == null ? '–' : (r.slope > 0 ? '+' : '') + fmt(r.slope)}</td></tr>`).join('')}
+    </tbody></table><p class="hint" style="margin:8px 0 0">Deriva = último tercio vs. primer tercio dentro de la ronda. ms/min = pendiente de la regresión del tiempo de reacción a lo largo de la ronda.</p>`;
+  drawTrialsChart(s); drawRoundsChart(st.rs);
+}
+
+/* ================= Gráficas (canvas nativo) ================= */
+function fitCanvas(cv){
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if(cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)){ cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  return { g, w, h };
+}
+function niceStep(range){ const raw = range / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
+function clearChart(cv, title){ if(!cv.clientWidth) return; const { g, w, h } = fitCanvas(cv); g.fillStyle = '#8a95a5'; g.font = '600 12px system-ui'; g.fillText(title, 12, 20); g.textAlign = 'center'; g.fillText('Sin datos', w / 2, h / 2); g.textAlign = 'left'; }
+function axes(g, w, h, pad, ymax, title){
+  g.fillStyle = '#8a95a5'; g.font = '600 12px system-ui'; g.fillText(title, 12, 18);
+  const step = niceStep(ymax); g.font = '11px system-ui'; g.textAlign = 'right';
+  for(let v = 0; v <= ymax + 0.01; v += step){
+    const y = h - pad.b - v / ymax * (h - pad.t - pad.b);
+    g.strokeStyle = '#262d37'; g.lineWidth = 1; g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke();
+    g.fillText(Math.round(v), pad.l - 6, y + 4);
+  }
+  g.textAlign = 'left';
+}
+function drawTrialsChart(s){
+  const cv = $('#chartTrials'); if(!cv.clientWidth) return;
+  const trials = []; s.rounds.forEach(r => r.trials.forEach(t => trials.push(Object.assign({ r:r.n }, t))));
+  if(!trials.length){ clearChart(cv, 'Tiempos de reacción por estímulo'); return; }
+  const { g, w, h } = fitCanvas(cv), pad = { l:42, r:12, t:30, b:22 };
+  const rts = trials.filter(t => t.rt != null).map(t => t.rt);
+  const ymax = Math.max(400, (rts.length ? Math.max(...rts) : 400) * 1.15);
+  axes(g, w, h, pad, ymax, 'Tiempo de reacción por estímulo (ms)');
+  const X = i => pad.l + (trials.length === 1 ? 0.5 : i / (trials.length - 1)) * (w - pad.l - pad.r);
+  const Y = v => h - pad.b - Math.min(v, ymax) / ymax * (h - pad.t - pad.b);
+  let prevR = trials[0].r;
+  trials.forEach((t, i) => {
+    if(t.r !== prevR){ const x = (X(i) + X(i - 1)) / 2; g.strokeStyle = '#3a4350'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(x, pad.t); g.lineTo(x, h - pad.b); g.stroke(); g.setLineDash([]); prevR = t.r; }
+  });
+  // media móvil (5) sobre aciertos
+  g.strokeStyle = 'rgba(233,237,242,.55)'; g.lineWidth = 2; g.beginPath(); let started = false; const win = [];
+  trials.forEach((t, i) => { if(t.result !== 'ok') return; win.push(t.rt); if(win.length > 5) win.shift(); const y = Y(mean(win)); if(!started){ g.moveTo(X(i), y); started = true; } else g.lineTo(X(i), y); });
+  g.stroke();
+  trials.forEach((t, i) => {
+    const x = X(i);
+    if(t.result === 'ok'){ g.fillStyle = ROUND_COLORS[(t.r - 1) % ROUND_COLORS.length]; g.beginPath(); g.arc(x, Y(t.rt), 4, 0, Math.PI * 2); g.fill(); }
+    else if(t.result === 'fallo'){ g.strokeStyle = '#ff4d5e'; g.lineWidth = 2; const y = pad.t + 6; g.beginPath(); g.moveTo(x - 4, y - 4); g.lineTo(x + 4, y + 4); g.moveTo(x + 4, y - 4); g.lineTo(x - 4, y + 4); g.stroke(); }
+    else if(t.result === 'error'){ g.fillStyle = '#b483ff'; const y = Y(t.rt); g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x + 5, y + 4); g.lineTo(x - 5, y + 4); g.closePath(); g.fill(); }
+  });
+  $('#legendTrials').innerHTML = s.rounds.map(r => `<span><i style="background:${ROUND_COLORS[(r.n-1)%ROUND_COLORS.length]}"></i>R${r.n}</span>`).join('') +
+    '<span><i style="background:rgba(233,237,242,.55);border-radius:2px;height:3px"></i>Media móvil</span><span style="color:#ff4d5e">✕ Fallo</span><span style="color:#b483ff">▲ Error no-go</span>';
+}
+function drawRoundsChart(rs){
+  const cv = $('#chartRounds'); if(!cv.clientWidth) return;
+  const data = rs.filter(r => r.mean != null);
+  if(!data.length){ clearChart(cv, 'Promedio por ronda'); return; }
+  const { g, w, h } = fitCanvas(cv), pad = { l:42, r:12, t:30, b:24 };
+  const ymax = Math.max(...data.map(r => r.mean + (r.sd || 0))) * 1.2;
+  axes(g, w, h, pad, ymax, 'Promedio por ronda ± DE (ms)');
+  const bw = Math.min(56, (w - pad.l - pad.r) / data.length * 0.55);
+  data.forEach((r, i) => {
+    const cx = pad.l + (i + 0.5) * (w - pad.l - pad.r) / data.length;
+    const Y = v => h - pad.b - v / ymax * (h - pad.t - pad.b);
+    g.fillStyle = ROUND_COLORS[(r.n - 1) % ROUND_COLORS.length];
+    const y = Y(r.mean); g.beginPath();
+    if(g.roundRect) g.roundRect(cx - bw / 2, y, bw, h - pad.b - y, [6, 6, 0, 0]); else g.rect(cx - bw / 2, y, bw, h - pad.b - y);
+    g.fill();
+    if(r.sd){ g.strokeStyle = '#e9edf2'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(cx, Y(r.mean - r.sd)); g.lineTo(cx, Y(r.mean + r.sd)); g.moveTo(cx - 6, Y(r.mean + r.sd)); g.lineTo(cx + 6, Y(r.mean + r.sd)); g.moveTo(cx - 6, Y(r.mean - r.sd)); g.lineTo(cx + 6, Y(r.mean - r.sd)); g.stroke(); }
+    g.fillStyle = '#e9edf2'; g.font = '700 12px system-ui'; g.textAlign = 'center';
+    g.fillText(Math.round(r.mean), cx, Y(r.mean + (r.sd || 0)) - 6);
+    g.fillStyle = '#8a95a5'; g.font = '11px system-ui'; g.fillText('R' + r.n, cx, h - 7); g.textAlign = 'left';
+  });
+}
+function drawMeter(cv){
+  if(!cv.clientWidth) return;
+  const { g, w, h } = fitCanvas(cv);
+  const X = db => Math.max(0, Math.min(1, (db + 60) / 60)) * w;
+  g.fillStyle = '#1b2028'; g.fillRect(0, 0, w, h);
+  const thr = S.thrDb, x = X(meterDb);
+  g.fillStyle = meterDb >= thr ? '#2ee6a6' : '#4da3ff'; g.fillRect(0, 0, x, h);
+  g.fillStyle = '#e9edf2'; g.fillRect(X(peakHoldDb) - 1, 0, 2, h);
+  g.fillStyle = '#ff5a2e'; g.fillRect(X(thr) - 1.5, 0, 3, h);
+}
+
+/* ================= Calibración automática ================= */
+function startAutoCal(){
+  initMic().then(ok => {
+    if(!ok) return;
+    $('#btnAutoCal').disabled = true;
+    $('#calMsg').innerHTML = '<b style="color:var(--warn)">Silencio…</b> midiendo ruido ambiente (2 s)';
+    tone(660, 0.12, 0.2);
+    setTimeout(() => { CAL = { phase:'noise', until:performance.now() + 2000, noise:0, ev:null, hits:[] }; }, 450);
+  });
+}
+function calFeed(pk, now){
+  if(CAL.phase === 'noise'){
+    CAL.noise = Math.max(CAL.noise, pk);
+    if(now > CAL.until){
+      CAL.phase = 'wait';
+      tone(1320, 0.12, 0.2);
+      setTimeout(() => { if(CAL){ CAL.phase = 'hits'; CAL.until = performance.now() + 10000; } }, 400);
+      $('#calMsg').innerHTML = '<b style="color:var(--ok)">¡Golpea / aplaude ahora!</b> 0 de 5';
+    }
+  } else if(CAL.phase === 'hits'){
+    const trig = Math.max(CAL.noise * 3, 0.02);
+    if(pk > trig){ if(!CAL.ev) CAL.ev = { max:pk, end:now + 220 }; else CAL.ev.max = Math.max(CAL.ev.max, pk); }
+    if(CAL.ev && now > CAL.ev.end){ CAL.hits.push(CAL.ev.max); CAL.ev = null; $('#calMsg').innerHTML = `<b style="color:var(--ok)">¡Golpea / aplaude ahora!</b> ${CAL.hits.length} de 5`; }
+    if(CAL.hits.length >= 5 || now > CAL.until) finishCal();
+  }
+}
+function finishCal(){
+  const c = CAL; CAL = null; $('#btnAutoCal').disabled = false;
+  if(c.hits.length < 2){ $('#calMsg').innerHTML = '<b style="color:var(--bad)">No detecté suficientes golpes.</b> Acércate al micrófono o golpea más fuerte e intenta de nuevo.'; return; }
+  const nDb = lin2db(Math.max(c.noise, 0.0005)), hDb = lin2db(Math.min(...c.hits));
+  let thr = nDb + (hDb - nDb) * 0.5;
+  thr = Math.min(thr, hDb - 3); thr = Math.max(thr, nDb + 6);
+  S.thrDb = Math.round(Math.max(-60, Math.min(-3, thr))); saveS(); syncForm();
+  $('#calMsg').innerHTML = `<b style="color:var(--ok)">Listo.</b> Ruido ${fmt(nDb)} dBFS · golpe más suave ${fmt(hDb)} dBFS → umbral <b>${S.thrDb} dBFS</b>. Prueba con unos golpes: el contador debe subir uno por impacto.`;
+  calHits = 0; $('#hitCount').textContent = 0;
+}
+
+/* ================= UI: pestañas, formulario, modalidades ================= */
+function showTab(t){
+  $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $$('.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + t));
+  if(t === 'stats') requestAnimationFrame(renderStats);
+}
+window.showTab = showTab;
+$$('.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+function renderModeChips(){
+  $('#modeChips').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button class="mode ${S.mode === k ? 'on' : ''}" data-m="${k}" ${E.running ? 'disabled' : ''}>${p.label}</button>`).join('');
+  $$('#modeChips .mode').forEach(b => b.onclick = () => applyPreset(b.dataset.m));
+}
+function applyPreset(m){ if(E.running) return; Object.assign(S, presetFields(m)); saveS(); syncForm(); fb(`Modalidad ${PRESETS[m].label}: ${S.rounds}×${S.roundDur}s, intervalo ${S.minI}–${S.maxI}s`); }
+$('#modeSel').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('');
+
+const OUT = { thrDb:v => v + ' dBFS', transient:v => v <= 1 ? 'off' : '×' + v, refractory:v => v + ' ms', latency:v => v + ' ms',
+  nogoProb:v => v + '%', rate:v => (+v).toFixed(2) + '×', volume:v => Math.round(v * 100) + '%' };
+function setEl(el, v){ if(el.type === 'checkbox') el.checked = !!v; else el.value = v == null ? '' : v; }
+function syncOutputs(){ $$('[data-o]').forEach(o => { const k = o.dataset.o; o.textContent = OUT[k] ? OUT[k](S[k]) : S[k]; }); }
+function syncForm(){ $$('[data-k]').forEach(el => setEl(el, S[el.dataset.k])); syncOutputs(); renderModeChips(); }
+$$('[data-k]').forEach(el => {
+  const k = el.dataset.k;
+  const ev = (el.tagName === 'TEXTAREA' || el.type === 'range') ? 'input' : 'change';
+  el.addEventListener(ev, () => {
+    let v = el.type === 'checkbox' ? el.checked : (el.type === 'number' || el.type === 'range') ? parseFloat(el.value) : el.value;
+    if(k === 'mode'){ applyPreset(v); return; }
+    if(typeof v === 'number' && isNaN(v)) return;
+    S[k] = v; saveS(); syncOutputs();
+  });
+});
+
+$('#btnStart').onclick = startSession;
+$('#btnPause').onclick = pauseSession;
+$('#btnStop').onclick = stopSession;
+$('#btnMic').onclick = () => initMic();
+$('#btnAutoCal').onclick = startAutoCal;
+$('#btnPreset').onclick = () => applyPreset(S.mode);
+$('#btnTestVoice').onclick = () => { if(ctx && ctx.state === 'suspended') ctx.resume(); say(listOf(S.cmds).slice(0, 2).join('. ') || 'Jab. Gancho derecho.'); };
+$('#btnClear').onclick = () => { if(confirm('¿Borrar todo el historial de sesiones?')){ store.set('reflex.history', []); viewId = null; renderStats(); } };
+$('#btnCsv').onclick = () => {
+  const h = getHistory(), s = h.find(x => x.id === viewId) || h[0];
+  if(!s){ alert('No hay sesiones para exportar.'); return; }
+  const rows = [['fecha','modalidad','ronda','estimulo','comando','no_go','resultado','rt_ms','t_en_ronda_ms']];
+  s.rounds.forEach(r => r.trials.forEach((t, i) => rows.push([s.date, s.mode, r.n, i + 1, '"' + t.cmd.replace(/"/g, '""') + '"', t.nogo ? 1 : 0, t.result, t.rt == null ? '' : t.rt, t.t])));
+  const blob = new Blob(['﻿' + rows.map(r => r.join(',')).join('\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `reflex_${s.mode}_${s.date.slice(0,16).replace(/[:T]/g,'-')}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+
+/* ================= Bucle principal ================= */
+function uiFrame(){
+  const now = performance.now();
+  if(E.running && !E.paused){
+    if(E.state === 'rest') $('#clockLbl').textContent = fmtClock(E.restEnd - now);
+    else if(E.state === 'waiting' || E.state === 'armed') $('#clockLbl').textContent = fmtClock(E.roundEnd - now);
+  }
+  if($('#tab-train').classList.contains('on')) drawMeter($('#meterTrain'));
+  if($('#tab-calib').classList.contains('on')){
+    drawMeter($('#meterCal'));
+    $('#lvlNow').textContent = isFinite(meterDb) ? meterDb.toFixed(0) : '-∞';
+    $('#lvlPeak').textContent = isFinite(peakHoldDb) ? peakHoldDb.toFixed(0) : '-∞';
+  }
+}
+function loop(){ if(analyser && !document.hidden) tick(); uiFrame(); requestAnimationFrame(loop); }
+setInterval(() => { if(analyser && document.hidden) tick(); }, 25);
+document.addEventListener('visibilitychange', async () => {
+  if(!document.hidden && E.running && navigator.wakeLock && !E.wake){ try{ E.wake = await navigator.wakeLock.request('screen'); }catch(e){} }
+});
+window.addEventListener('resize', () => { if($('#tab-stats').classList.contains('on')) renderStats(); });
+
+syncForm();
+requestAnimationFrame(loop);
+</script>
+</body>
 </html>
